@@ -237,7 +237,14 @@ const trailProgress=document.createElement('section');trailProgress.className='t
 const $=id=>document.getElementById(id), canvas=$('canvas'),ctx=canvas.getContext('2d');let W,H,scale,last=0,timer;
 const goal={wood:8,stone:5,rope:1,berries:4,water:3,maps:3};
 const s={name:'',style:'ranger',health:100,hunger:78,thirst:72,energy:100,day:1,hour:8,loc:'forest',x:0,y:0,wood:0,stone:0,rope:0,berries:0,water:0,maps:0,trailTokens:0,trailRewards:new Set(),trailEvents:new Set(),slowUntil:0,found:new Set(),visited:new Set(),activeTab:'map',started:false,over:false,won:false};
-const locations={forest:{name:'Forest Edge',x:.21,y:.28,color:'#60775d',text:'Tall pines hide small resources and a path marker.'},river:{name:'Whispering River',x:.67,y:.22,color:'#6eabb0',text:'The river is the only safe source of water. Search its banks.'},cave:{name:'Echo Cave',x:.78,y:.68,color:'#5a5550',text:'A dark cave. You need a rope to reach the lower shelf.'},camp:{name:'Abandoned Camp',x:.35,y:.73,color:'#b8784d',text:'Old tents and ash conceal a piece of the family map.'},hidden:{name:'Hidden Path',x:.52,y:.48,color:'#ba9654',text:'A narrow route through the undergrowth. It leads toward the exit.'},exit:{name:'Ridge Exit',x:.9,y:.43,color:'#dca84f',text:'The ridge overlooks the road. Assemble the map to leave.'}};
+const locations={
+forest:{name:'Forest Edge',x:.21,y:.28,color:'#60775d',text:'Tall pines hide small resources and a path marker.',image:'https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=1600&q=85'},
+river:{name:'Whispering River',x:.67,y:.22,color:'#6eabb0',text:'The river is the only safe source of water. Search its banks.',image:'https://images.unsplash.com/photo-1470770841072-f978cf4d019e?auto=format&fit=crop&w=1600&q=85'},
+cave:{name:'Echo Cave',x:.78,y:.68,color:'#5a5550',text:'A dark cave. You need a rope to reach the lower shelf.',image:'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1600&q=85'},
+camp:{name:'Abandoned Camp',x:.35,y:.73,color:'#b8784d',text:'Old tents and ash conceal a piece of the family map.',image:'https://images.unsplash.com/photo-1478131143081-80f7f84ca84d?auto=format&fit=crop&w=1600&q=85'},
+hidden:{name:'Hidden Path',x:.52,y:.48,color:'#ba9654',text:'A narrow route through the undergrowth. It leads toward the exit.',image:'https://images.unsplash.com/photo-1511497584788-876760111969?auto=format&fit=crop&w=1600&q=85'},
+exit:{name:'Ridge Exit',x:.9,y:.43,color:'#dca84f',text:'The ridge overlooks the road. Assemble the map to leave.',image:'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1600&q=85'}
+};
 const trailRoutes=[['forest','camp'],['camp','hidden'],['hidden','exit'],['forest','river'],['river','cave'],['hidden','cave']];
 const trailTokens=[{x:.25,y:.38},{x:.3,y:.52},{x:.42,y:.63},{x:.46,y:.55},{x:.64,y:.45},{x:.78,y:.43},{x:.43,y:.25},{x:.72,y:.43},{x:.66,y:.59}].map((token,index)=>({...token,id:index,collected:false}));
 const trailEvents=[{id:'muddy-slope',x:.265,y:.45,name:'Muddy slope',cost:10},{id:'loose-crossing',x:.74,y:.5,name:'Loose crossing',cost:8}];
@@ -278,8 +285,16 @@ let objectiveText='';if(s.maps>=goal.maps)objectiveText='You have all three map 
 document.querySelectorAll('[data-location-card]').forEach(card=>{const current=card.dataset.locationCard===s.loc?'location':'false';if(card.getAttribute('aria-current')!==current)card.setAttribute('aria-current',current)})
 }
 function world(){
-ctx.clearRect(0,0,W,H);ctx.fillStyle='#71866b';ctx.fillRect(0,0,W,H);
-for(let x=0;x<W;x+=26)for(let y=0;y<H;y+=26){ctx.fillStyle=(Math.sin(x*2+y)*.5+.5)>.5?'#829572':'#637b65';ctx.fillRect(x,y,2,2)}
+ctx.clearRect(0,0,W,H);
+const mapElement=canvas.parentElement;
+const locationImage=locations[s.loc].image;
+if(mapElement.dataset.locationImage!==locationImage){
+mapElement.dataset.locationImage=locationImage;
+mapElement.style.backgroundImage=`linear-gradient(rgba(23,53,47,.18),rgba(23,53,47,.28)),url("${locationImage}")`;
+mapElement.style.backgroundSize='cover';
+mapElement.style.backgroundPosition='center';
+mapElement.style.backgroundRepeat='no-repeat';
+}
 ctx.fillStyle='#82b8ba';ctx.beginPath();ctx.ellipse(W*.67,H*.22,W*.19,H*.13,0,0,7);ctx.fill();ctx.strokeStyle='#d1c095';ctx.lineWidth=8;ctx.lineCap='round';ctx.lineJoin='round';for(const [start,end] of trailRoutes){ctx.beginPath();ctx.moveTo(locations[start].x*W,locations[start].y*H);ctx.lineTo(locations[end].x*W,locations[end].y*H);ctx.stroke()}
 for(const token of trailTokens){if(token.collected)continue;const x=token.x*W,y=token.y*H;ctx.save();ctx.translate(x,y);ctx.rotate(Math.PI/4);ctx.fillStyle='#d59a38';ctx.strokeStyle='#fff4d8';ctx.lineWidth=2;ctx.beginPath();ctx.roundRect(-7,-7,14,14,3);ctx.fill();ctx.stroke();ctx.restore();ctx.fillStyle='#fff4d8';ctx.font='700 10px Georgia,serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('✦',x,y)}
 for(const event of trailEvents){if(s.trailEvents.has(event.id))continue;const x=event.x*W,y=event.y*H;ctx.fillStyle='#a94f37';ctx.strokeStyle='#fff4e8';ctx.lineWidth=2;ctx.beginPath();ctx.arc(x,y,10,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.fillStyle='#fff';ctx.font='700 13px Trebuchet MS,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('!',x,y+1)}
