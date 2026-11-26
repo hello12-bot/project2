@@ -266,8 +266,26 @@ document.querySelectorAll('[data-open-settings]').forEach(button=>button.addEven
 $('largeText').addEventListener('change',e=>document.body.classList.toggle('large-text',e.target.checked));$('reduceMotion').addEventListener('change',e=>document.body.classList.toggle('reduce-motion',e.target.checked));
 const roleDescriptions={ranger:'Ranger: a trail guide who likes planning the route.',scout:'Scout: a curious explorer who notices hidden paths.',medic:'Medic: a caring helper focused on keeping the team well.'};$('style').addEventListener('change',e=>$('roleHelp').textContent=roleDescriptions[e.target.value]);
 function resize(){const r=canvas.getBoundingClientRect();scale=devicePixelRatio;canvas.width=r.width*scale;canvas.height=r.height*scale;W=r.width;H=r.height;ctx.setTransform(scale,0,0,scale,0,0)}
+function updateMapBackground(){
+const location=locations[s.loc];
+const mapElement=canvas.parentElement;
+const background=`linear-gradient(rgba(23,53,47,.18),rgba(23,53,47,.28)),url("${location.image}")`;
+mapElement.dataset.location=s.loc;
+mapElement.style.backgroundImage=background;
+mapElement.style.backgroundSize='cover';
+mapElement.style.backgroundPosition='center';
+mapElement.style.backgroundRepeat='no-repeat';
+canvas.style.backgroundImage=background;
+canvas.style.backgroundSize='cover';
+canvas.style.backgroundPosition='center';
+canvas.style.backgroundRepeat='no-repeat';
+}
+Object.values(locations).forEach(location=>{
+const image=new Image();
+image.src=location.image;
+});
 document.querySelectorAll('[data-location-card]').forEach(card=>card.addEventListener('click',()=>{const k=card.dataset.locationCard;s.loc=k;s.visited.add(k);s.x=locations[k].x*W;s.y=locations[k].y*H;log('You arrived at '+locations[k].name+'. Search this area or press Space to look for clues.');ui();world()}));
-function init(){resize();s.x=locations[s.loc].x*W;s.y=locations[s.loc].y*H}
+function init(){resize();updateMapBackground();s.x=locations[s.loc].x*W;s.y=locations[s.loc].y*H}
 function log(t){
 const p=document.createElement('p');p.textContent=t;$('log').prepend(p);$('searchResult').textContent=t;
 const toast=$('toast'),icon=t.match(/arrived|entered/i)?'🧭':/crossing|slope|rough ground/i.test(t)?'⚠️':/water|river/i.test(t)?'💧':/map/i.test(t)?'🗺️':/rope/i.test(t)?'🪢':/stone/i.test(t)?'🪨':/berr/i.test(t)?'🍓':/wood|pines/i.test(t)?'🪵':/rest|health|energy/i.test(t)?'🌿':'✨';
@@ -276,6 +294,7 @@ const badge=document.createElement('span');badge.className='toast-icon';badge.se
 }
 function bar(k){const value=String(Math.round(s[k])),number=$(k+'N'),fill=$(k+'B'),width=Math.max(0,s[k])+'%',meter=fill.parentElement;if(number.textContent!==value)number.textContent=value;if(fill.style.width!==width)fill.style.width=width;if(meter.getAttribute('aria-valuenow')!==value)meter.setAttribute('aria-valuenow',value);fill.classList.toggle('low',s[k]<30)}
 function ui(){
+updateMapBackground();
 ['health','hunger','thirst','energy'].forEach(bar);['wood','stone','rope','berries','water','maps'].forEach(k=>{const value=s[k]+'/'+goal[k];if($(k).textContent!==value)$(k).textContent=value});
 const place=locations[s.loc],dayText='Day '+s.day,timeText=s.hour<12?'Morning':s.hour<18?'Afternoon':'Night',locationText='Location: '+place.name;
 if($('day').textContent!==dayText)$('day').textContent=dayText;if($('time').textContent!==timeText)$('time').textContent=timeText;if($('locationTitle').textContent!==locationText)$('locationTitle').textContent=locationText;
@@ -286,15 +305,6 @@ document.querySelectorAll('[data-location-card]').forEach(card=>{const current=c
 }
 function world(){
 ctx.clearRect(0,0,W,H);
-const mapElement=canvas.parentElement;
-const locationImage=locations[s.loc].image;
-if(mapElement.dataset.locationImage!==locationImage){
-mapElement.dataset.locationImage=locationImage;
-mapElement.style.backgroundImage=`linear-gradient(rgba(23,53,47,.18),rgba(23,53,47,.28)),url("${locationImage}")`;
-mapElement.style.backgroundSize='cover';
-mapElement.style.backgroundPosition='center';
-mapElement.style.backgroundRepeat='no-repeat';
-}
 ctx.fillStyle='#82b8ba';ctx.beginPath();ctx.ellipse(W*.67,H*.22,W*.19,H*.13,0,0,7);ctx.fill();ctx.strokeStyle='#d1c095';ctx.lineWidth=8;ctx.lineCap='round';ctx.lineJoin='round';for(const [start,end] of trailRoutes){ctx.beginPath();ctx.moveTo(locations[start].x*W,locations[start].y*H);ctx.lineTo(locations[end].x*W,locations[end].y*H);ctx.stroke()}
 for(const token of trailTokens){if(token.collected)continue;const x=token.x*W,y=token.y*H;ctx.save();ctx.translate(x,y);ctx.rotate(Math.PI/4);ctx.fillStyle='#d59a38';ctx.strokeStyle='#fff4d8';ctx.lineWidth=2;ctx.beginPath();ctx.roundRect(-7,-7,14,14,3);ctx.fill();ctx.stroke();ctx.restore();ctx.fillStyle='#fff4d8';ctx.font='700 10px Georgia,serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('✦',x,y)}
 for(const event of trailEvents){if(s.trailEvents.has(event.id))continue;const x=event.x*W,y=event.y*H;ctx.fillStyle='#a94f37';ctx.strokeStyle='#fff4e8';ctx.lineWidth=2;ctx.beginPath();ctx.arc(x,y,10,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.fillStyle='#fff';ctx.font='700 13px Trebuchet MS,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('!',x,y+1)}
